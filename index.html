@@ -16,6 +16,7 @@
         touch-action: none;
         user-select: none;
         -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
       }
 
       #game-wrapper {
@@ -31,106 +32,177 @@
         display: block;
         background: #1a1a2e;
         image-rendering: pixelated;
+        /* zabrání kreslení přes okraje touchpad zón */
+        max-width: 100%;
+        max-height: 100%;
       }
 
-      /* ─── Dotykový gamepad ─────────────────────────────── */
+      /* ═══════════════════════════════════════════════
+         DOTYKOVÝ GAMEPAD
+         Overlay sedí přesně nad canvasem (inset:0).
+         Dvě zóny: vlevo D-pad, vpravo akce.
+         Vše škáluje přes clamp() – žádná absolutní px.
+      ═══════════════════════════════════════════════ */
+
       #touch-overlay {
         position: absolute;
         inset: 0;
         pointer-events: none;
         display: none;
+
+        /* Rozloží zóny na kraje, zarovná dolů */
+        align-items: flex-end;
+        justify-content: space-between;
+        padding:
+          0
+          clamp(8px, 3vw, 20px)
+          max(clamp(8px, 2vh, 16px), env(safe-area-inset-bottom, 0px))
+          clamp(8px, 3vw, 20px);
       }
 
-      #touch-overlay.active { display: block; }
-
-      .touch-zone {
-        position: absolute;
-        pointer-events: all;
+      #touch-overlay.active {
+        display: flex;
       }
 
-      /* Levá zóna – D-pad */
+      /* ─── Levá zóna – D-pad ─────────── */
       #zone-left {
-        left: 12px; bottom: 16px;
-        width: 180px; height: 180px;
+        pointer-events: all;
+        display: flex;
+        flex-direction: row;
+        align-items: flex-end;
+        gap: clamp(8px, 2.5vw, 20px);
       }
 
       #dpad {
-        position: relative;
-        width: 180px; height: 180px;
+        display: flex;
+        flex-direction: row;
+        gap: clamp(8px, 2.5vw, 20px);
       }
 
       .dpad-btn {
-        position: absolute;
-        width: 54px; height: 54px;
-        background: rgba(255,255,255,0.12);
-        border: 2px solid rgba(255,255,255,0.3);
-        border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        color: #fff; font-size: 22px;
+        width:  clamp(56px, 16vw, 76px);
+        height: clamp(56px, 16vw, 76px);
+        background: rgba(255, 255, 255, 0.12);
+        border: 2px solid rgba(255, 255, 255, 0.35);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: clamp(20px, 5vw, 28px);
         cursor: pointer;
-        transition: background 0.1s;
-      }
-      .dpad-btn:active, .dpad-btn.pressed {
-        background: rgba(255,255,255,0.35);
+        transition: background 0.08s;
+        /* minimální tap area */
+        min-width: 48px;
+        min-height: 48px;
       }
 
-      #dpad-left  { left: 0;   top: 63px; }
-      #dpad-right { left: 126px; top: 63px; }
+      .dpad-btn.pressed,
+      .dpad-btn:active {
+        background: rgba(255, 255, 255, 0.38);
+        border-color: rgba(255, 255, 255, 0.7);
+      }
 
-      /* Pravá zóna – akční tlačítka */
+      /* ─── Pravá zóna – akční tlačítka ─ */
       #zone-right {
-        right: 12px; bottom: 16px;
-        width: 200px; height: 180px;
+        pointer-events: all;
+        display: grid;
+        /*
+          Rozložení (2 sloupce × 2 řady):
+          [ prázdno ] [ SKOK    ]
+          [ ÚTOK    ] [ KACHNA  ]
+        */
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+        gap: clamp(8px, 2.5vw, 14px);
+        align-items: end;
+        justify-items: center;
       }
 
       .action-btn {
-        position: absolute;
         border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 13px; font-weight: bold; color: #fff;
-        cursor: pointer;
-        border: 2px solid rgba(255,255,255,0.4);
-        transition: transform 0.08s, opacity 0.08s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         text-align: center;
-      }
-      .action-btn:active, .action-btn.pressed {
-        transform: scale(0.9);
-        opacity: 0.75;
+        font-weight: bold;
+        color: #fff;
+        cursor: pointer;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        transition: transform 0.08s, opacity 0.08s;
+        line-height: 1.2;
+        /* minimální tap area */
+        min-width: 48px;
+        min-height: 48px;
       }
 
+      .action-btn.pressed,
+      .action-btn:active {
+        transform: scale(0.88);
+        opacity: 0.7;
+      }
+
+      /* SKOK – pravý sloupec, první řada */
       #btn-jump {
-        width: 68px; height: 68px;
-        background: rgba(60,180,255,0.55);
-        right: 10px; bottom: 90px;
-        font-size: 11px;
+        grid-column: 2;
+        grid-row: 1;
+        width:  clamp(58px, 16vw, 76px);
+        height: clamp(58px, 16vw, 76px);
+        background: rgba(40, 160, 255, 0.65);
+        font-size: clamp(10px, 2.6vw, 14px);
       }
 
+      /* ÚTOK – levý sloupec, druhá řada */
       #btn-attack {
-        width: 58px; height: 58px;
-        background: rgba(255,100,60,0.55);
-        right: 90px; bottom: 16px;
-        font-size: 11px;
+        grid-column: 1;
+        grid-row: 2;
+        width:  clamp(56px, 15vw, 72px);
+        height: clamp(56px, 15vw, 72px);
+        background: rgba(255, 80, 40, 0.65);
+        font-size: clamp(10px, 2.5vw, 13px);
       }
 
+      /* KACHNA – pravý sloupec, druhá řada */
       #btn-ultimate {
-        width: 74px; height: 74px;
-        background: radial-gradient(circle, rgba(255,220,0,0.9) 0%, rgba(255,100,200,0.7) 70%);
-        left: 0; bottom: 50px;
-        font-size: 10px;
-        box-shadow: 0 0 18px 6px rgba(255,200,50,0.7);
-        animation: pulse-glow 1.8s ease-in-out infinite;
+        grid-column: 2;
+        grid-row: 2;
+        width:  clamp(60px, 17vw, 80px);
+        height: clamp(60px, 17vw, 80px);
+        background: radial-gradient(circle,
+          rgba(255, 220, 0, 0.95) 0%,
+          rgba(255, 100, 200, 0.75) 70%);
+        font-size: clamp(9px, 2.3vw, 12px);
         border: 3px solid gold;
+        box-shadow: 0 0 16px 5px rgba(255, 200, 50, 0.75);
+        animation: pulse-glow 1.8s ease-in-out infinite;
       }
+
       #btn-ultimate.disabled {
-        background: rgba(80,80,80,0.5);
+        background: rgba(70, 70, 70, 0.55);
         box-shadow: none;
         animation: none;
-        border-color: rgba(255,255,255,0.2);
+        border-color: rgba(255, 255, 255, 0.2);
       }
 
       @keyframes pulse-glow {
-        0%, 100% { box-shadow: 0 0 18px 6px rgba(255,200,50,0.7); }
-        50%       { box-shadow: 0 0 30px 14px rgba(255,200,50,0.95); }
+        0%, 100% { box-shadow: 0 0 16px 5px rgba(255, 200, 50, 0.75); }
+        50%       { box-shadow: 0 0 28px 12px rgba(255, 200, 50, 1); }
+      }
+
+      /* ─── Landscape – menší tlačítka když je málo výšky ─ */
+      @media (max-height: 420px) {
+        .dpad-btn {
+          width:  clamp(44px, 12vw, 60px);
+          height: clamp(44px, 12vw, 60px);
+          font-size: clamp(16px, 4vw, 22px);
+        }
+        .action-btn {
+          min-width: 40px;
+          min-height: 40px;
+        }
+        #btn-jump     { width: clamp(46px, 13vw, 62px); height: clamp(46px, 13vw, 62px); }
+        #btn-attack   { width: clamp(44px, 12vw, 58px); height: clamp(44px, 12vw, 58px); }
+        #btn-ultimate { width: clamp(48px, 13vw, 64px); height: clamp(48px, 13vw, 64px); }
       }
     </style>
   </head>
@@ -139,20 +211,22 @@
       <canvas id="game-canvas"></canvas>
 
       <div id="touch-overlay">
-        <!-- Pohyb -->
-        <div class="touch-zone" id="zone-left">
+
+        <!-- Levá strana – D-pad (šipky) -->
+        <div id="zone-left">
           <div id="dpad">
             <div class="dpad-btn" id="dpad-left">◀</div>
             <div class="dpad-btn" id="dpad-right">▶</div>
           </div>
         </div>
 
-        <!-- Akce -->
-        <div class="touch-zone" id="zone-right">
+        <!-- Pravá strana – akce v gridu (bez překrytí) -->
+        <div id="zone-right">
           <div class="action-btn" id="btn-jump">SKOK</div>
           <div class="action-btn" id="btn-attack">ÚTOK</div>
-          <div class="action-btn disabled" id="btn-ultimate">ETHER<br>KACHNA</div>
+          <div class="action-btn disabled" id="btn-ultimate">⚡<br>KACHNA</div>
         </div>
+
       </div>
     </div>
 
