@@ -6,6 +6,8 @@ Stack: **Vite + TypeScript + HTML5 Canvas + GitHub Actions (CI/CD for GitHub Pag
 Repository: `github.com/314PAP/FlatEarth2D`
 Deployment target: GitHub Pages via `gh-pages` branch.
 
+---
+
 ## Planned Architecture
 
 ### File Tree

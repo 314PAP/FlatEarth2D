@@ -1,7 +1,7 @@
 {
   "name": "flat-earth-2d",
   "version": "1.0.0",
-  "description": "Flat Earth 2D - Side-Scrolling Beat 'Em Up",
+  "description": "Flat Earth 2D - Beat 'Em Up",
   "type": "module",
   "scripts": {
     "dev": "vite",
