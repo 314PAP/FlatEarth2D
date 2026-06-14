@@ -1,4 +1,4 @@
-import type { PhysicsBody, Platform } from './types.js';
+import type { PhysicsBody } from './types.js';
 import { BEATEMUP_GROUND_Y, BEATEMUP_FAR_LAYER_Y, MOVE_SPEED } from './constants.js';
 
 export const GLOBER_W = 44;
