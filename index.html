@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#0a0a1a" />
+<title>Flat Earth 2D - Beat 'Em Up</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%; height: 100%;
+  background: #0a0a1a;
+  overflow: hidden;
+  font-family: 'Segoe UI', sans-serif;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#game-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#game-canvas {
+  display: block;
+  background: #1a1a2e;
+  image-rendering: pixelated;
+  max-width: 100%;
+  max-height: 100%;
+}
+#touch-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: none;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 clamp(8px, 3vw, 20px) max(clamp(8px, 2vh, 16px), env(safe-area-inset-bottom, 0px)) clamp(8px, 3vw, 20px);
+}
+#touch-overlay.active { display: flex; }
+#zone-left {
+  pointer-events: all;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: clamp(6px, 2vw, 14px);
+}
+.dpad-btn {
+  width: clamp(52px, 14vw, 68px);
+  height: clamp(52px, 14vw, 68px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: clamp(18px, 4.5vw, 24px);
+  cursor: pointer;
+  min-width: 44px; min-height: 44px;
+}
+.dpad-btn.pressed, .dpad-btn:active {
+  background: rgba(255, 255, 255, 0.3);
+}
+#zone-right {
+  pointer-events: all;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 2vw, 16px);
+  align-items: flex-end;
+}
+.action-btn {
+  width: clamp(60px, 16vw, 80px);
+  height: clamp(60px, 16vw, 80px);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center; font-weight: bold; color: #fff;
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  min-width: 48px; min-height: 48px;
+}
+.action-btn.pressed, .action-btn:active {
+  transform: scale(0.9); opacity: 0.7;
+}
+#btn-jump {
+  background: rgba(40, 160, 255, 0.7);
+  font-size: clamp(10px, 2.4vw, 14px);
+}
+#btn-attack {
+  background: rgba(255, 80, 40, 0.7);
+  font-size: clamp(10px, 2.4vw, 14px);
+}
+#btn-ultimate {
+  background: radial-gradient(circle, rgba(255,220,0,0.9) 0%, rgba(255,100,200,0.7) 70%);
+  font-size: clamp(9px, 2.2vw, 12px);
+  border: 3px solid gold;
+  box-shadow: 0 0 14px 4px rgba(255,200,50,0.7);
+  animation: pulse-glow 1.8s ease-in-out infinite;
+}
+#btn-ultimate.disabled {
+  background: rgba(60,60,60,0.5);
+  box-shadow: none; animation: none;
+  border-color: rgba(255,255,255,0.2);
+}
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 14px 4px rgba(255,200,50,0.7); }
+  50% { box-shadow: 0 0 24px 10px rgba(255,200,50,1); }
+}
+</style>
+  <script type="module" crossorigin src="/FlatEarth2D/assets/index-D05qZEnE.js"></script>
+</head>
+<body>
+<div id="game-wrapper">
+  <canvas id="game-canvas"></canvas>
+  <div id="touch-overlay">
+    <div id="zone-left">
+      <div class="dpad-btn" id="dpad-left">◀</div>
+      <div class="dpad-btn" id="dpad-right">▶</div>
+      <div class="dpad-btn" id="dpad-up">▲</div>
+      <div class="dpad-btn" id="dpad-down">▼</div>
+    </div>
+    <div id="zone-right">
+      <div class="action-btn" id="btn-attack">ÚTOK</div>
+      <div class="action-btn" id="btn-jump">SKOK</div>
+      <div class="action-btn disabled" id="btn-ultimate">⚡<br>KACHNA</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
