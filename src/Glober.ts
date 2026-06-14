@@ -1,5 +1,5 @@
 import type { PhysicsBody } from './types.js';
-import { BEATEMUP_GROUND_Y, BEATEMUP_FAR_LAYER_Y, MOVE_SPEED } from './constants.js';
+import { BEATEMUP_GROUND_Y, BEATEMUP_FAR_LAYER_Y } from './constants.js';
 
 export const GLOBER_W = 44;
 export const GLOBER_H = 60;
@@ -34,10 +34,8 @@ export class Glober {
 
   // Arcade Flanking AI
   aiState: AIState = 'approach';
-  private aiTimer = 0;
   private attackCooldown = 0;
   private readonly ATTACK_COOLDOWN = 0.4;
-  private readonly STRIKE_DELAY = 0.2;
 
   constructor(x: number, y: number, patrolMin: number, patrolMax: number) {
     this.body.x = x;
@@ -123,13 +121,9 @@ export class Glober {
     }
   }
 
-  private performAttack(domoBody: PhysicsBody): void {
-    // Direct hit check during strike (telegraphed 200ms delay)
-    const dx = Math.abs(domoBody.x - this.body.x);
-    const dy = Math.abs(domoBody.y - this.body.y);
-    if (dx < 50 && dy < 15) {
-      // Hit Domo - Engine handles actual damage
-    }
+  private performAttack(_domoBody: PhysicsBody): void {
+    // Direct hit check during strike (telegraphed attack)
+    // Damage is handled by Engine collision detection
   }
 
   takeDamage(amount: number): void {
