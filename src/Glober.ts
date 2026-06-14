@@ -25,27 +25,25 @@ export class Glober {
 
   private patrolMinX = 0;
   private patrolMaxX = 0;
-  private patrolSpeed = 80;
+  private speed = 80;
   private facing = 1;
   private deathTimer = -1;
   readonly DEATH_DURATION = 1.2;
   drops: { x: number; y: number; vy: number; collected: boolean; kind: 'ether' | 'material' }[] = [];
   private globeRotation = 0;
 
-  // Flanking AI
+  // Arcade Flanking AI
   aiState: AIState = 'approach';
   private aiTimer = 0;
-  private flankDir = 1;
-  private readonly FLANK_DURATION = 0.8;
-  private readonly STRIKE_RANGE = 60;
-  private readonly Y_DEPTH_TOLERANCE = 15;
+  private attackCooldown = 0;
+  private readonly ATTACK_COOLDOWN = 0.4;
+  private readonly STRIKE_DELAY = 0.2;
 
   constructor(x: number, y: number, patrolMin: number, patrolMax: number) {
     this.body.x = x;
     this.body.y = y;
     this.patrolMinX = patrolMin;
     this.patrolMaxX = patrolMax;
-    this.body.vx = this.patrolSpeed;
     this.facing = 1;
   }
 
@@ -62,40 +60,46 @@ export class Glober {
     if (domoBody) {
       const dx = domoBody.x - this.body.x;
       const dy = domoBody.y - this.body.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      const yDist = Math.abs(dy);
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
 
-      // AI state machine
-      if (yDist < this.Y_DEPTH_TOLERANCE && dist < this.STRIKE_RANGE) {
-        this.aiState = 'strike';
-      } else if (yDist < this.Y_DEPTH_TOLERANCE) {
+      // STATE 1: Diagonal Approach (far away)
+      if (absDx > 120) {
         this.aiState = 'approach';
-      } else {
+      }
+      // STATE 2: Arcade Flank (close on X, but wrong Y depth)
+      else if (absDx <= 120 && absDy > 15) {
         this.aiState = 'flank';
+      }
+      // STATE 3: Strike (same depth, in range)
+      else if (absDy <= 15 && absDx <= 50) {
+        this.aiState = 'strike';
+      } else {
+        this.aiState = 'approach';
       }
 
       switch (this.aiState) {
         case 'approach':
-          // Move toward Domo on X, adjust Y slightly
-          this.body.vx = dx > 0 ? this.patrolSpeed : -this.patrolSpeed;
-          this.body.vy = dy * 0.5;
+          // Move toward Domo on both axes
+          this.body.vx = Math.sign(dx) * this.speed;
+          this.body.vy = Math.sign(dy) * this.speed;
           this.facing = dx > 0 ? 1 : -1;
           break;
         case 'flank':
-          // Shuffle up/down to match Domo's Y-layer
-          this.aiTimer += dt;
-          if (this.aiTimer >= this.FLANK_DURATION) {
-            this.aiTimer = 0;
-            this.flankDir *= -1;
-          }
-          this.body.vx = dx > 0 ? this.patrolSpeed * 0.5 : -this.patrolSpeed * 0.5;
-          this.body.vy = this.flankDir * MOVE_SPEED * 0.3;
+          // Shuffle vertically to match Domo's depth layer
+          this.body.vy = Math.sign(dy) * this.speed;
+          this.body.vx = Math.sign(dx) * this.speed * 0.3; // maintain slight X distance
+          this.facing = dx > 0 ? 1 : -1;
           break;
         case 'strike':
-          // Rush forward on same Y-layer
-          this.body.vx = dx > 0 ? this.patrolSpeed * 1.5 : -this.patrolSpeed * 1.5;
+          // Stop, line up, attack
+          this.body.vx = 0;
           this.body.vy = 0;
-          this.facing = dx > 0 ? 1 : -1;
+          this.attackCooldown -= dt;
+          if (this.attackCooldown <= 0) {
+            this.attackCooldown = this.ATTACK_COOLDOWN;
+            this.performAttack(domoBody);
+          }
           break;
       }
     }
@@ -116,6 +120,15 @@ export class Glober {
         this.headState = 'flat';
         this.flatProgress = 0;
       }
+    }
+  }
+
+  private performAttack(domoBody: PhysicsBody): void {
+    // Direct hit check during strike (telegraphed 200ms delay)
+    const dx = Math.abs(domoBody.x - this.body.x);
+    const dy = Math.abs(domoBody.y - this.body.y);
+    if (dx < 50 && dy < 15) {
+      // Hit Domo - Engine handles actual damage
     }
   }
 

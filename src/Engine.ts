@@ -149,9 +149,14 @@ export class Engine {
     }
     this.input.updateUltimateButton(this.ether >= MAX_ETHER && this.cardManager.cardsCollected >= CARDS_FOR_COMPANION);
 
-    // Camera: lock when enemies active, scroll right only
+    // Camera: scroll right only when Domo crosses screen center
     const enemiesActive = this.globers.some(g => g.alive);
-    this.updateCamera(enemiesActive);
+    this.updateCamera(enemiesActive, this.domo.body.x);
+
+    // Hard lock: block Domo from moving left of camera
+    if (this.domo.body.x < this.cameraX) {
+      this.domo.body.x = this.cameraX;
+    }
 
     // GO flash when wave cleared
     if (!enemiesActive && this.globers.length > 0) {
@@ -172,12 +177,15 @@ export class Engine {
     this.ui.triggerEtherDuck();
   }
 
-  private updateCamera(enemiesActive: boolean): void {
-    const targetX = this.domo.body.x - LOGICAL_WIDTH * 0.35;
+  private updateCamera(enemiesActive: boolean, domoX: number): void {
     if (enemiesActive) {
-      const forwardTarget = Math.max(this.cameraX, targetX);
-      this.cameraX += (forwardTarget - this.cameraX) * 0.1;
+      // Lock forward - Domo can only advance camera, never retreat
+      if (domoX - this.cameraX > 400) {
+        this.cameraX = domoX - 400;
+      }
     } else {
+      // Normal follow when no enemies
+      const targetX = domoX - LOGICAL_WIDTH * 0.35;
       this.cameraX += (targetX - this.cameraX) * 0.1;
     }
     this.cameraX = Math.max(0, this.cameraX);
@@ -228,18 +236,22 @@ export class Engine {
     ctx.clearRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
     if (this.phase === 'start') { this.ui.drawStartScreen(ctx); return; }
 
-    // Sky
+    // Sky (screen space, no camera)
     const skyGrad = ctx.createLinearGradient(0, 0, 0, LOGICAL_HEIGHT);
     skyGrad.addColorStop(0, '#050510');
     skyGrad.addColorStop(1, '#0a0a2e');
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-    // Ground
-    ctx.fillStyle = '#1a3a28';
-    ctx.fillRect(0, BEATEMUP_GROUND_Y, LOGICAL_WIDTH, LOGICAL_HEIGHT - BEATEMUP_GROUND_Y);
+    // World-space rendering with camera offset
+    ctx.save();
+    ctx.translate(-this.cameraX, 0);
 
-    // Breakables
+    // Ground (world space, scrolls with camera)
+    ctx.fillStyle = '#1a3a28';
+    ctx.fillRect(0, BEATEMUP_GROUND_Y, 4000, LOGICAL_HEIGHT - BEATEMUP_GROUND_Y);
+
+    // Breakables (world space)
     this.cardManager.drawBreakables(ctx);
 
     // Y-sorted render
@@ -255,18 +267,27 @@ export class Engine {
       else if (item.kind === 'card') this.cardManager.drawCard(ctx, item.obj);
     }
 
+    ctx.restore();
+
+    // UI (screen space, no camera)
     this.ui.draw(ctx, this.buildState());
     if (this.phase === 'levelComplete') this.ui.drawLevelComplete(ctx, this.level);
     else if (this.phase === 'gameOver') this.ui.drawGameOver(ctx, this.score);
 
-    // GO flash
+    // GO flash (screen space)
     if (this.goFlashTimer > 0) {
       this.goFlashTimer -= 0.016;
-      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.fillStyle = '#00ff00';
       ctx.font = 'bold 72px "Segoe UI"';
       ctx.textAlign = 'center';
       ctx.fillText('GO ->', LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2);
       ctx.textAlign = 'left';
+    }
+
+    // Debug camera lock indicator
+    if (this.globers.some(g => g.alive)) {
+      ctx.fillStyle = 'rgba(255,0,0,0.6)';
+      ctx.fillRect(LOGICAL_WIDTH - 20, 0, 20, 20);
     }
   }
 
