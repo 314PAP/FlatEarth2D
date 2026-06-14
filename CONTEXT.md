@@ -118,3 +118,32 @@ FlatEarth2D-main/
 - npx tsc --noEmit passed
 - Git commit and push to main branch performed
 - CONTEXT.md status updated: Step 1 Complete
+
+## CPS-1 ARCADE REFACTOR (2026-06-14)
+
+### Camera Screen Lock (CPS-1 Logic)
+- Camera scrolls horizontally ONLY when Domo crosses the screen center
+- No backward scrolling allowed once advanced
+- When enemy wave spawns, camera locks forward (right edge becomes a wall)
+- After all enemies dead, flash "GO ->" UI before next section
+
+### Arcade Hitboxes (Strict CPS-1)
+- Attacks only land if X-boxes overlap AND |Y-depth| < 15 logical pixels
+- Otherwise attacks miss completely (no damage)
+- Render array sorted by Y-coordinate every frame for Z-indexing
+
+### Breakable Objects
+- Crates/barrels spawn on the floor, block movement until smashed
+- On 0 HP drop: Illuminati Card, healing food, or temporary weapon (visual placeholder)
+
+### Flanking AI
+- Glober enemies use 3-state AI: approach -> flank -> strike
+- Approach: move toward Domo on X, slight Y adjustment
+- Flank: shuffle up/down to match Domo's depth layer
+- Strike: only line up on same Y-layer when within range, then rush forward
+
+### Module Changes
+- `src/Camera.ts`: Added `locked` state, forward-only scroll lock
+- `src/Engine.ts`: GO flash timer, camera pass `enemiesActive`, breakable spawn, refined hitbox
+- `src/Glober.ts`: Added `AIState`, flanking logic with `flankDir`, Y-depth targeting
+- `src/CardManager.ts`: Added `Breakable` interface and `spawnBreakable()`

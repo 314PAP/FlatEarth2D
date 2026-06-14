@@ -1,10 +1,11 @@
 import type { PhysicsBody, Platform } from './types.js';
-import { BEATEMUP_GROUND_Y, BEATEMUP_FAR_LAYER_Y } from './constants.js';
+import { BEATEMUP_GROUND_Y, BEATEMUP_FAR_LAYER_Y, MOVE_SPEED } from './constants.js';
 
 export const GLOBER_W = 44;
 export const GLOBER_H = 60;
 
 type HeadState = 'globe' | 'flattening' | 'flat';
+type AIState = 'approach' | 'flank' | 'strike';
 
 export class Glober {
   body: PhysicsBody = {
@@ -31,6 +32,14 @@ export class Glober {
   drops: { x: number; y: number; vy: number; collected: boolean; kind: 'ether' | 'material' }[] = [];
   private globeRotation = 0;
 
+  // Flanking AI
+  aiState: AIState = 'approach';
+  private aiTimer = 0;
+  private flankDir = 1;
+  private readonly FLANK_DURATION = 0.8;
+  private readonly STRIKE_RANGE = 60;
+  private readonly Y_DEPTH_TOLERANCE = 15;
+
   constructor(x: number, y: number, patrolMin: number, patrolMax: number) {
     this.body.x = x;
     this.body.y = y;
@@ -43,21 +52,65 @@ export class Glober {
   get isDead(): boolean { return !this.alive; }
   get isRemoving(): boolean { return this.deathTimer >= 0 && this.deathTimer >= this.DEATH_DURATION; }
 
-  update(_dt: number, _platforms: Platform[]): void {
+  update(dt: number, domoBody: PhysicsBody | null): void {
     if (!this.alive) {
-      this.deathTimer += _dt;
+      this.deathTimer += dt;
       return;
     }
-    this.globeRotation += _dt * 60 * this.facing;
+    this.globeRotation += dt * 60 * this.facing;
 
-    if (this.body.x <= this.patrolMinX) { this.body.vx = this.patrolSpeed; this.facing = 1; }
-    else if (this.body.x + this.body.w >= this.patrolMaxX) { this.body.vx = -this.patrolSpeed; this.facing = -1; }
+    if (domoBody) {
+      const dx = domoBody.x - this.body.x;
+      const dy = domoBody.y - this.body.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const yDist = Math.abs(dy);
 
-    this.body.x += this.body.vx * _dt;
-    if (this.body.y < BEATEMUP_GROUND_Y - this.body.h) this.body.y = BEATEMUP_GROUND_Y - this.body.h;
+      // AI state machine
+      if (yDist < this.Y_DEPTH_TOLERANCE && dist < this.STRIKE_RANGE) {
+        this.aiState = 'strike';
+      } else if (yDist < this.Y_DEPTH_TOLERANCE) {
+        this.aiState = 'approach';
+      } else {
+        this.aiState = 'flank';
+      }
+
+      switch (this.aiState) {
+        case 'approach':
+          // Move toward Domo on X, adjust Y slightly
+          this.body.vx = dx > 0 ? this.patrolSpeed : -this.patrolSpeed;
+          this.body.vy = dy * 0.5;
+          this.facing = dx > 0 ? 1 : -1;
+          break;
+        case 'flank':
+          // Shuffle up/down to match Domo's Y-layer
+          this.aiTimer += dt;
+          if (this.aiTimer >= this.FLANK_DURATION) {
+            this.aiTimer = 0;
+            this.flankDir *= -1;
+          }
+          this.body.vx = dx > 0 ? this.patrolSpeed * 0.5 : -this.patrolSpeed * 0.5;
+          this.body.vy = this.flankDir * MOVE_SPEED * 0.3;
+          break;
+        case 'strike':
+          // Rush forward on same Y-layer
+          this.body.vx = dx > 0 ? this.patrolSpeed * 1.5 : -this.patrolSpeed * 1.5;
+          this.body.vy = 0;
+          this.facing = dx > 0 ? 1 : -1;
+          break;
+      }
+    }
+
+    this.body.x += this.body.vx * dt;
+    this.body.y += this.body.vy * dt;
+
+    // Clamp to playfield
+    if (this.body.x < this.patrolMinX) this.body.x = this.patrolMinX;
+    if (this.body.x + this.body.w > this.patrolMaxX) this.body.x = this.patrolMaxX;
+    if (this.body.y < BEATEMUP_FAR_LAYER_Y) this.body.y = BEATEMUP_FAR_LAYER_Y;
+    if (this.body.y > BEATEMUP_GROUND_Y - this.body.h) this.body.y = BEATEMUP_GROUND_Y - this.body.h;
 
     if (this.headState === 'flattening') {
-      this.flattenTimer += _dt;
+      this.flattenTimer += dt;
       this.flatProgress = Math.max(0, 1 - this.flattenTimer / this.FLATTEN_DURATION);
       if (this.flattenTimer >= this.FLATTEN_DURATION) {
         this.headState = 'flat';
@@ -79,7 +132,13 @@ export class Glober {
     this.headState = 'flat';
     this.flatProgress = 0;
     this.deathTimer = 0;
-    this.drops.push({ x: this.body.x + this.body.w / 2, y: this.body.y, vy: -200, collected: false, kind: 'ether' });
+    this.drops.push({
+      x: this.body.x + this.body.w / 2,
+      y: this.body.y,
+      vy: -200,
+      collected: false,
+      kind: 'ether',
+    });
   }
 
   draw(ctx: CanvasRenderingContext2D): void {

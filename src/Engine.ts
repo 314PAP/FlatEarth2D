@@ -34,6 +34,8 @@ export class Engine {
   private levelTransitionTimer = 0;
   private readonly LEVEL_TRANSITION = 2.5;
   private cameraX = 0;
+  private goFlashTimer = 0;
+  private readonly GO_FLASH_DURATION = 1.5;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -67,7 +69,9 @@ export class Engine {
       }
     } else if (this.phase === 'levelComplete') {
       this.levelTransitionTimer += rawDt;
-      if (this.levelTransitionTimer >= this.LEVEL_TRANSITION) this.startNextLevel();
+      if (this.levelTransitionTimer >= this.LEVEL_TRANSITION) {
+        this.startNextLevel();
+      }
     }
 
     this.ui.update(rawDt, this.buildState());
@@ -78,27 +82,40 @@ export class Engine {
 
   private fixedUpdate(dt: number): void {
     this.domo.update(dt, this.input, [] as any);
-    for (const g of this.globers) g.update(dt, []);
+    for (const g of this.globers) g.update(dt, this.domo.body);
     this.cardManager.update(dt);
     this.companion.update(dt);
 
-    // Y-sort
+    // Y-sort every frame
     const list: Array<{ y: number; kind: string; obj: any }> = [];
     list.push({ y: this.domo.body.y, kind: 'domo', obj: this.domo });
     for (const g of this.globers) if (g.alive) list.push({ y: g.body.y, kind: 'glober', obj: g });
     list.sort((a, b) => a.y - b.y);
 
-    // Attack hit - Y-depth check
+    // CPS-1 arcade hitbox: X overlap AND |Y-depth| < 15
     if (this.domo.isAttacking) {
       const ar = this.domo.attackRect;
       for (const g of this.globers) {
         if (!g.alive) continue;
-        if (this.rectsOverlap(ar, g.body) && Math.abs(ar.y - g.body.y) < 40) {
+        if (this.rectsOverlap(ar, g.body) && Math.abs(ar.y - g.body.y) < 15) {
           g.takeDamage(this.domo.attackDamage);
           if (!g.alive) {
             this.score += 100;
             this.heatMeter = Math.min(100, this.heatMeter + 15);
             this.ether = Math.min(MAX_ETHER, this.ether + ETHER_PER_KILL);
+          }
+        }
+      }
+
+      // Breakable objects
+      for (const b of this.cardManager.breakables) {
+        if (!b.alive) continue;
+        if (this.rectsOverlap(ar, b)) {
+          b.hp -= this.domo.attackDamage;
+          if (b.hp <= 0) {
+            b.alive = false;
+            this.cardManager.cardsCollected++;
+            this.score += 25;
           }
         }
       }
@@ -108,7 +125,7 @@ export class Engine {
     if (!this.domo.isInvulnerable) {
       for (const g of this.globers) {
         if (!g.alive) continue;
-        if (this.rectsOverlap(this.domo.body, g.body) && Math.abs(this.domo.body.y - g.body.y) < 40) {
+        if (this.rectsOverlap(this.domo.body, g.body) && Math.abs(this.domo.body.y - g.body.y) < 15) {
           this.domo.takeDamage(1);
           break;
         }
@@ -132,13 +149,20 @@ export class Engine {
     }
     this.input.updateUltimateButton(this.ether >= MAX_ETHER && this.cardManager.cardsCollected >= CARDS_FOR_COMPANION);
 
-    this.updateCamera();
-    this.globers = this.globers.filter(g => !g.isRemoving);
+    // Camera: lock when enemies active, scroll right only
+    const enemiesActive = this.globers.some(g => g.alive);
+    this.updateCamera(enemiesActive);
 
-    if (this.globers.every(g => !g.alive)) {
+    // GO flash when wave cleared
+    if (!enemiesActive && this.globers.length > 0) {
+      this.goFlashTimer = this.GO_FLASH_DURATION;
+      this.globers = [];
       this.phase = 'levelComplete';
       this.levelTransitionTimer = 0;
     }
+
+    this.globers = this.globers.filter(g => !g.isRemoving);
+
     if (this.domo.isDead) this.phase = 'gameOver';
   }
 
@@ -148,9 +172,14 @@ export class Engine {
     this.ui.triggerEtherDuck();
   }
 
-  private updateCamera(): void {
+  private updateCamera(enemiesActive: boolean): void {
     const targetX = this.domo.body.x - LOGICAL_WIDTH * 0.35;
-    this.cameraX += (targetX - this.cameraX) * 0.1;
+    if (enemiesActive) {
+      const forwardTarget = Math.max(this.cameraX, targetX);
+      this.cameraX += (forwardTarget - this.cameraX) * 0.1;
+    } else {
+      this.cameraX += (targetX - this.cameraX) * 0.1;
+    }
     this.cameraX = Math.max(0, this.cameraX);
   }
 
@@ -162,11 +191,22 @@ export class Engine {
     this.companion = new Companion();
     this.accumulator = 0;
     this.phase = 'playing';
+    this.goFlashTimer = 0;
+
+    // Spawn breakable objects around the street
+    for (let i = 0; i < 6; i++) {
+      this.cardManager.spawnBreakable(400 + i * 300, BEATEMUP_GROUND_Y - 40);
+    }
   }
 
   private startNextLevel(): void { this.startLevel(this.level + 1); }
 
-  private restart(): void { this.score = 0; this.ether = 0; this.heatMeter = 0; this.startLevel(1); }
+  private restart(): void {
+    this.score = 0;
+    this.ether = 0;
+    this.heatMeter = 0;
+    this.startLevel(1);
+  }
 
   private bindRestartInput(): void {
     window.addEventListener('keydown', (e) => {
@@ -188,7 +228,7 @@ export class Engine {
     ctx.clearRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
     if (this.phase === 'start') { this.ui.drawStartScreen(ctx); return; }
 
-    // Background
+    // Sky
     const skyGrad = ctx.createLinearGradient(0, 0, 0, LOGICAL_HEIGHT);
     skyGrad.addColorStop(0, '#050510');
     skyGrad.addColorStop(1, '#0a0a2e');
@@ -198,6 +238,9 @@ export class Engine {
     // Ground
     ctx.fillStyle = '#1a3a28';
     ctx.fillRect(0, BEATEMUP_GROUND_Y, LOGICAL_WIDTH, LOGICAL_HEIGHT - BEATEMUP_GROUND_Y);
+
+    // Breakables
+    this.cardManager.drawBreakables(ctx);
 
     // Y-sorted render
     const list: Array<{ y: number; kind: string; obj: any }> = [];
@@ -215,6 +258,16 @@ export class Engine {
     this.ui.draw(ctx, this.buildState());
     if (this.phase === 'levelComplete') this.ui.drawLevelComplete(ctx, this.level);
     else if (this.phase === 'gameOver') this.ui.drawGameOver(ctx, this.score);
+
+    // GO flash
+    if (this.goFlashTimer > 0) {
+      this.goFlashTimer -= 0.016;
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.font = 'bold 72px "Segoe UI"';
+      ctx.textAlign = 'center';
+      ctx.fillText('GO ->', LOGICAL_WIDTH / 2, LOGICAL_HEIGHT / 2);
+      ctx.textAlign = 'left';
+    }
   }
 
   buildState() {
