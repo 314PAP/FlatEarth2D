@@ -1,5 +1,5 @@
 import type { PhysicsBody, Platform } from './types.js';
-import { MOVE_SPEED, LOGICAL_WIDTH, LOGICAL_HEIGHT, BEATEMUP_GROUND_Y, BEATEMUP_FAR_LAYER_Y } from './constants.js';
+import { MOVE_SPEED, BEATEMUP_GROUND_Y, BEATEMUP_FAR_LAYER_Y } from './constants.js';
 import type { InputManager } from './Input.js';
 
 export const DOMO_W = 48;

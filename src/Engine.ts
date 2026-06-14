@@ -1,9 +1,10 @@
 import {
   LOGICAL_WIDTH, LOGICAL_HEIGHT,
   FIXED_DT, MAX_ACCUMULATED_DT,
-  COLOR_GROUND, MAX_ETHER, ETHER_PER_KILL,
+  MAX_ETHER, ETHER_PER_KILL,
   CARDS_FOR_COMPANION, BEATEMUP_GROUND_Y,
 } from './constants.js';
+import type { Rect } from './types.js';
 import { Domo } from './Domo.js';
 import { Glober, spawnWave } from './Glober.js';
 import { UI } from './UI.js';
@@ -33,7 +34,6 @@ export class Engine {
   private levelTransitionTimer = 0;
   private readonly LEVEL_TRANSITION = 2.5;
   private cameraX = 0;
-  private companions: { x: number; y: number; vx: number; vy: number; life: number }[] = [];
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -83,7 +83,7 @@ export class Engine {
     this.companion.update(dt);
 
     // Y-sort
-    const list: any[] = [];
+    const list: Array<{ y: number; kind: string; obj: any }> = [];
     list.push({ y: this.domo.body.y, kind: 'domo', obj: this.domo });
     for (const g of this.globers) if (g.alive) list.push({ y: g.body.y, kind: 'glober', obj: g });
     list.sort((a, b) => a.y - b.y);
@@ -196,11 +196,11 @@ export class Engine {
     ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
     // Ground
-    ctx.fillStyle = COLOR_GROUND;
+    ctx.fillStyle = '#1a3a28';
     ctx.fillRect(0, BEATEMUP_GROUND_Y, LOGICAL_WIDTH, LOGICAL_HEIGHT - BEATEMUP_GROUND_Y);
 
     // Y-sorted render
-    const list: any[] = [];
+    const list: Array<{ y: number; kind: string; obj: any }> = [];
     list.push({ y: this.domo.body.y, kind: 'domo', obj: this.domo });
     for (const g of this.globers) if (g.alive && !g.isRemoving) list.push({ y: g.body.y, kind: 'glober', obj: g });
     for (const c of this.cardManager.cards) if (!c.collected) list.push({ y: c.y, kind: 'card', obj: c });
@@ -230,11 +230,11 @@ export class Engine {
     };
   }
 
-  private rectsOverlap(a: any, b: any): boolean {
+  private rectsOverlap(a: Rect, b: Rect): boolean {
     return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   }
 
-  private pointInRect(px: number, py: number, r: any, expand = 0): boolean {
+  private pointInRect(px: number, py: number, r: Rect, expand = 0): boolean {
     return px >= r.x - expand && px <= r.x + r.w + expand && py >= r.y - expand && py <= r.y + r.h + expand;
   }
 }

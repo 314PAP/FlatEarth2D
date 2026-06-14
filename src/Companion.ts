@@ -1,5 +1,3 @@
-import { CARDS_FOR_COMPANION } from './constants.js';
-
 export class Companion {
   unlocked = false;
   active = false;
@@ -7,7 +5,6 @@ export class Companion {
   readonly ACTIVE_DURATION = 1.5;
 
   summon(): void {
-    if (!this.unlocked) return;
     this.active = true;
     this.activeTimer = 0;
   }
@@ -15,9 +12,7 @@ export class Companion {
   update(dt: number): void {
     if (this.active) {
       this.activeTimer += dt;
-      if (this.activeTimer >= this.ACTIVE_DURATION) {
-        this.active = false;
-      }
+      if (this.activeTimer >= this.ACTIVE_DURATION) this.active = false;
     }
   }
 

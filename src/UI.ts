@@ -1,5 +1,5 @@
 import type { GameState } from './types.js';
-import { LOGICAL_WIDTH, LOGICAL_HEIGHT, COLOR_HUD_BG, COLOR_HP_BAR, COLOR_HP_LOST, COLOR_TEXT, COLOR_HEAT_BAR, MAX_ETHER, CARDS_FOR_COMPANION } from './constants.js';
+import { LOGICAL_WIDTH, LOGICAL_HEIGHT, COLOR_HUD_BG, COLOR_HP_BAR, COLOR_HP_LOST, COLOR_TEXT, COLOR_HEAT_BAR, CARDS_FOR_COMPANION } from './constants.js';
 
 export class UI {
   private etherDuck = { active: false, timer: 0, x: -250, duration: 2.0, speed: 900 };
