@@ -1,12 +1,10 @@
 # CONTEXT.md – Flat Earth 2D Continuity Document
 
 ## Project Overview
-2D Arcade-style Beat 'em Up web game called "Flat Earth".  
-Stack: **Vite + TypeScript + HTML5 Canvas + GitHub Actions (CI/CD for GitHub Pages)**.  
-Repository: `github.com/314PAP/FlatEarth2D`  
+2D Side-Scrolling Beat 'Em Up (Cadillacs and Dinosaurs / Streets of Rage style) called "Flat Earth".
+Stack: **Vite + TypeScript + HTML5 Canvas + GitHub Actions (CI/CD for GitHub Pages)**.
+Repository: `github.com/314PAP/FlatEarth2D`
 Deployment target: GitHub Pages via `gh-pages` branch.
-
----
 
 ## Planned Architecture
 
@@ -33,8 +31,17 @@ FlatEarth2D-main/
     ├── Glober.ts
     ├── CardManager.ts
     ├── Companion.ts
-    ├── UI.ts
+    └── UI.ts
 ```
+
+### Genre Specification
+- 2D Beat 'Em Up (Cadillacs and Dinosaurs / Streets of Rage style)
+- Continuous horizontal street/ground plane
+- NO platforms to jump on
+- Domo moves 4-way: Left/Right (X-axis) and Up/Down (Y-axis depth layers)
+- Characters scale based on Y-position (depth: smaller when far back, larger when close)
+- Dynamic Y-sort rendering for proper depth ordering
+- Attacks register only when characters are on same horizontal level AND Y-depth overlaps
 
 ### Class Structures & Method Signatures
 
@@ -56,14 +63,14 @@ FlatEarth2D-main/
 #### `src/Input.ts`
 - `interface InputState`
 - `class InputManager`
-  - `left, right, jump, attack, ultimate: boolean`
+  - `left, right, up, down, jump, attack, ultimate: boolean`
   - `isJustPressed(key: keyof InputState): boolean`
   - `endFrame(): void`
 
 #### `src/Domo.ts`
 - `class Domo`
   - `body: PhysicsBody`
-  - `update(dt, input, platforms): void`
+  - `update(dt, input, entities): void`
   - `draw(ctx): void`
   - `attackRect: {x,y,w,h}`
   - `isAttacking: boolean`
@@ -75,7 +82,7 @@ FlatEarth2D-main/
   - `alive: boolean`
   - `headState: 'globe' | 'flattening' | 'flat'`
   - `flatProgress: number`
-  - `update(dt, platforms): void`
+  - `update(dt, entities): void`
   - `draw(ctx): void`
   - `takeDamage(amount): void`
 
@@ -102,13 +109,10 @@ FlatEarth2D-main/
   - `drawHeatMeter(ctx, state): void`
   - `drawCardCount(ctx, state): void`
 
----
-
 ## STEP 1 STATUS – COMPLETE
-
-### Base Infrastructure
-- `package.json`: scripts `dev`, `build`, `preview`; devDeps `typescript`, `vite`
-- `tsconfig.json`: strict mode, bundler resolution
-- `vite.config.ts`: `base: '/FlatEarth2D/'`
-- `index.html`: responsive 16:9 layout with touch overlay
-- `.github/workflows/deploy.yml`: GitHub Pages deployment on push to `main`
+- package.json, tsconfig.json, vite.config.ts created
+- index.html created with responsive layout + touch overlay
+- deploy.yml created
+- npx tsc --noEmit passed
+- Git commit and push to main branch performed
+- CONTEXT.md status updated: Step 1 Complete
