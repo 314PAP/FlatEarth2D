@@ -32,25 +32,15 @@
         display: block;
         background: #1a1a2e;
         image-rendering: pixelated;
-        /* zabrání kreslení přes okraje touchpad zón */
         max-width: 100%;
         max-height: 100%;
       }
-
-      /* ═══════════════════════════════════════════════
-         DOTYKOVÝ GAMEPAD
-         Overlay sedí přesně nad canvasem (inset:0).
-         Dvě zóny: vlevo D-pad, vpravo akce.
-         Vše škáluje přes clamp() – žádná absolutní px.
-      ═══════════════════════════════════════════════ */
 
       #touch-overlay {
         position: absolute;
         inset: 0;
         pointer-events: none;
         display: none;
-
-        /* Rozloží zóny na kraje, zarovná dolů */
         align-items: flex-end;
         justify-content: space-between;
         padding:
@@ -64,7 +54,6 @@
         display: flex;
       }
 
-      /* ─── Levá zóna – D-pad ─────────── */
       #zone-left {
         pointer-events: all;
         display: flex;
@@ -92,7 +81,6 @@
         font-size: clamp(20px, 5vw, 28px);
         cursor: pointer;
         transition: background 0.08s;
-        /* minimální tap area */
         min-width: 48px;
         min-height: 48px;
       }
@@ -103,15 +91,9 @@
         border-color: rgba(255, 255, 255, 0.7);
       }
 
-      /* ─── Pravá zóna – akční tlačítka ─ */
       #zone-right {
         pointer-events: all;
         display: grid;
-        /*
-          Rozložení (2 sloupce × 2 řady):
-          [ prázdno ] [ SKOK    ]
-          [ ÚTOK    ] [ KACHNA  ]
-        */
         grid-template-columns: 1fr 1fr;
         grid-template-rows: auto auto;
         gap: clamp(8px, 2.5vw, 14px);
@@ -131,7 +113,6 @@
         border: 2px solid rgba(255, 255, 255, 0.4);
         transition: transform 0.08s, opacity 0.08s;
         line-height: 1.2;
-        /* minimální tap area */
         min-width: 48px;
         min-height: 48px;
       }
@@ -142,7 +123,6 @@
         opacity: 0.7;
       }
 
-      /* SKOK – pravý sloupec, první řada */
       #btn-jump {
         grid-column: 2;
         grid-row: 1;
@@ -152,7 +132,6 @@
         font-size: clamp(10px, 2.6vw, 14px);
       }
 
-      /* ÚTOK – levý sloupec, druhá řada */
       #btn-attack {
         grid-column: 1;
         grid-row: 2;
@@ -162,7 +141,6 @@
         font-size: clamp(10px, 2.5vw, 13px);
       }
 
-      /* KACHNA – pravý sloupec, druhá řada */
       #btn-ultimate {
         grid-column: 2;
         grid-row: 2;
@@ -189,7 +167,6 @@
         50%       { box-shadow: 0 0 28px 12px rgba(255, 200, 50, 1); }
       }
 
-      /* ─── Landscape – menší tlačítka když je málo výšky ─ */
       @media (max-height: 420px) {
         .dpad-btn {
           width:  clamp(44px, 12vw, 60px);
@@ -211,8 +188,6 @@
       <canvas id="game-canvas"></canvas>
 
       <div id="touch-overlay">
-
-        <!-- Levá strana – D-pad (šipky) -->
         <div id="zone-left">
           <div id="dpad">
             <div class="dpad-btn" id="dpad-left">◀</div>
@@ -220,13 +195,11 @@
           </div>
         </div>
 
-        <!-- Pravá strana – akce v gridu (bez překrytí) -->
         <div id="zone-right">
           <div class="action-btn" id="btn-jump">SKOK</div>
           <div class="action-btn" id="btn-attack">ÚTOK</div>
           <div class="action-btn disabled" id="btn-ultimate">⚡<br>KACHNA</div>
         </div>
-
       </div>
     </div>
 
